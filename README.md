@@ -52,4 +52,4 @@ for chunk in unzipped_chunks:
     print(chunk)
 ```
 
-Ideally [Python's zipfile module](https://docs.python.org/3/library/zipfile.html) would be able to do this without calling into `funzip`. However, at the time of writing this does not appear possible.
+Ideally [Python's zipfile module](https://docs.python.org/3/library/zipfile.html) would be able to do this without calling into `funzip`. However, at the time of writing this does not appear easily possible.
