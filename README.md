@@ -16,7 +16,7 @@ pip install iterable-subprocess
 
 A single function `iterable_subprocess` is exposed. The first parameter is the `args` argument passed to the [Popen Constructor](https://docs.python.org/3/library/subprocess.html#popen-constructor), and the second is an iterable whose items must be `bytes` instances and are sent to the subprocess's standard input.
 
-Returned from the function is an iterable whose items are `bytes` instances of the processes standard output.
+Returned from the function is an iterable whose items are `bytes` instances of the process's standard output.
 
 ```python
 from iterable_subprocess import iterable_subprocess
