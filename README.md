@@ -1,4 +1,4 @@
-# iterable-subprocess
+# iterable-subprocess [![CircleCI](https://circleci.com/gh/uktrade/iterable-subprocess.svg?style=shield)](https://circleci.com/gh/uktrade/iterable-subprocess)
 
 Python utility function to communicate with a subprocess using iterables: for when data is too big to fit in memory and has to be streamed.
 
