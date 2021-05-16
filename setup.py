@@ -8,7 +8,7 @@ def long_description():
 
 setuptools.setup(
     name='iterable-subprocess',
-    version='0.0.2',
+    version='0.0.3',
     author='Department for International Trade',
     author_email='sre@digital.trade.gov.uk',
     description='Communicate with a subprocess using iterables: for when data is too big to fit in memory and has to be streamed',
