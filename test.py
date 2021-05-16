@@ -35,11 +35,18 @@ class TestIterableSubprocess(unittest.TestCase):
             prev_i = i
         self.assertGreater(num_steps, 50)
 
-    def test_exception_from_input_propagated(self):
+    def test_exception_from_input_before_yield_propagated(self):
         def yield_input():
             raise Exception('Something went wrong')
 
         with self.assertRaisesRegex(Exception, 'Something went wrong'):
+            b''.join(iterable_subprocess(['cat'], yield_input()))
+
+    def test_exception_from_input_incorrect_type_propagated(self):
+        def yield_input():
+            yield 'this-should-be-bytes'
+
+        with self.assertRaises(TypeError):
             b''.join(iterable_subprocess(['cat'], yield_input()))
 
     def test_exception_from_not_found_process_propagated(self):
