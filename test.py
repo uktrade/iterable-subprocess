@@ -42,6 +42,14 @@ class TestIterableSubprocess(unittest.TestCase):
         with self.assertRaisesRegex(Exception, 'Something went wrong'):
             b''.join(iterable_subprocess(['cat'], yield_input()))
 
+    def test_exception_from_input_after_yield_propagated(self):
+        def yield_input():
+            yield b'*'
+            raise Exception('Something went wrong')
+
+        with self.assertRaisesRegex(Exception, 'Something went wrong'):
+            b''.join(iterable_subprocess(['cat'], yield_input()))
+
     def test_exception_from_input_incorrect_type_propagated(self):
         def yield_input():
             yield 'this-should-be-bytes'

@@ -13,10 +13,10 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
             try:
                 for chunk in input_chunks:
                     proc.stdin.write(chunk)
-                proc.stdin.close()
             except Exception as e:
                 write_exception = e
-                proc.kill()
+            finally:
+                proc.stdin.close()
 
         t = Thread(target=pipe_to)
         t.start()
