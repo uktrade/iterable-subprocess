@@ -1,6 +1,8 @@
 import functools
+import io
 import threading
 import unittest
+import zipfile
 
 from iterable_subprocess import iterable_subprocess
 
@@ -61,6 +63,18 @@ class TestIterableSubprocess(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             b''.join(iterable_subprocess(['does-not-exist'], yield_small_input()))
 
+    def test_funzip(self):
+        contents = b'*' * 100000
+
+        def yield_input():
+            file = io.BytesIO()
+            with zipfile.ZipFile(file, 'w') as zf:
+                zf.writestr('any.txt', contents)
+
+            yield file.getvalue()
+
+        output = b''.join(iterable_subprocess(['funzip'], yield_input()))
+        self.assertEqual(output, contents)
 
 def yield_small_input():
     yield b'first'
