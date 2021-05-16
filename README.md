@@ -32,3 +32,24 @@ output = iterable_subprocess(['cat'], yield_input())
 for chunk in output:
     print(chunk)
 ```
+
+
+## Usage: unzip the first file of a ZIP archive while downloading
+
+While its not typically possible to completely unzip an arbitrary ZIP file on-the-fly, it _is_ possible to unzip the _first_ file in a ZIP archive using `funzip`, as in the following example.
+
+```python
+from iterable_subprocess import iterable_subprocess
+import httpx
+
+def zipped_chunks():
+    with httpx.stream('GET', 'https://www.example.com/my.zip') as r:
+        yield from r.iter_bytes()
+
+unzipped_chunks = iterable_subprocess(['funzip'], zipped_chunks())
+
+for chunk in unzipped_chunks:
+    print(chunk)
+```
+
+Ideally [Python's zipfile module](https://docs.python.org/3/library/zipfile.html) would be able to do this without calling into `funzip`. However, at the time of writing this does not appear possible.
