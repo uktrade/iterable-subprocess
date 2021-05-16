@@ -2,7 +2,7 @@
 
 Python utility function to communicate with a subprocess using iterables: for when data is too big to fit in memory and has to be streamed.
 
-Data is sent to a subprocess's standard input via an iterable, and extracted via another iterable. This allows an external subprocess to be naturally placed in a chain of iterables for streaming processing.
+Data is sent to a subprocess's standard input via an iterable, and extracted from its standard output via another iterable. This allows an external subprocess to be naturally placed in a chain of iterables for streaming processing.
 
 
 ## Installation
