@@ -63,12 +63,25 @@ class TestIterableSubprocess(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             b''.join(iterable_subprocess(['does-not-exist'], yield_small_input()))
 
-    def test_funzip(self):
+    def test_funzip_no_compression(self):
         contents = b'*' * 100000
 
         def yield_input():
             file = io.BytesIO()
-            with zipfile.ZipFile(file, 'w') as zf:
+            with zipfile.ZipFile(file, 'w', zipfile.ZIP_STORED) as zf:
+                zf.writestr('any.txt', contents)
+
+            yield file.getvalue()
+
+        output = b''.join(iterable_subprocess(['funzip'], yield_input()))
+        self.assertEqual(output, contents)
+
+    def test_funzip_deflate(self):
+        contents = b'*' * 100000
+
+        def yield_input():
+            file = io.BytesIO()
+            with zipfile.ZipFile(file, 'w', zipfile.ZIP_DEFLATED) as zf:
                 zf.writestr('any.txt', contents)
 
             yield file.getvalue()
