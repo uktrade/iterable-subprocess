@@ -43,9 +43,6 @@ class TestIterableSubprocess(unittest.TestCase):
             b''.join(iterable_subprocess(['cat'], yield_input()))
 
     def test_exception_from_not_found_process_propagated(self):
-        def yield_input():
-            raise Exception('Something went wrong')
-
         with self.assertRaises(FileNotFoundError):
             b''.join(iterable_subprocess(['does-not-exist'], yield_small_input()))
 
