@@ -36,7 +36,7 @@ for chunk in output:
 
 ## Usage: unzip the first file of a ZIP archive while downloading
 
-While its not typically possible to completely unzip an arbitrary ZIP file on-the-fly, it _is_ possible to unzip the _first_ file in a ZIP archive using `funzip`, as in the following example.
+It's possible to download the bytes of a ZIP file in Python, and unzip by passing the bytes to `funzip`, as in the following example.
 
 ```python
 from iterable_subprocess import iterable_subprocess
