@@ -1,10 +1,10 @@
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, DEVNULL
 from threading import Thread
 
-def iterable_subprocess(program, input_chunks, chunk_size=65536):
+def iterable_subprocess(program, input_chunks, stderr=DEVNULL, chunk_size=65536):
     write_exception = None
 
-    with Popen(program, stdin=PIPE, stdout=PIPE) as proc:
+    with Popen(program, stdin=PIPE, stdout=PIPE, stderr=stderr) as proc:
 
         # Send to process from another thread...
         def pipe_to():
