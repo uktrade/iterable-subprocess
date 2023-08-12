@@ -52,4 +52,4 @@ for chunk in unzipped_chunks:
     print(chunk)
 ```
 
-Ideally [Python's zipfile module](https://docs.python.org/3/library/zipfile.html) or [Python's zlib module](https://docs.python.org/3/library/zlib.html) would be able to do this without calling into `funzip`. However, at the time of writing this does not appear easily possible.
+Note that it's also possible to stream unzip files without resorting to another process using [stream-unzip](https://github.com/uktrade/stream-unzip).
