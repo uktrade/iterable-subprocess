@@ -1,4 +1,6 @@
-# iterable-subprocess [![CircleCI](https://circleci.com/gh/uktrade/iterable-subprocess.svg?style=shield)](https://circleci.com/gh/uktrade/iterable-subprocess) [![Test Coverage](https://api.codeclimate.com/v1/badges/048c4f322de3361468af/test_coverage)](https://codeclimate.com/github/uktrade/iterable-subprocess/test_coverage)
+# iterable-subprocess
+
+[![PyPI package](https://img.shields.io/pypi/v/iterable-subprocess?label=PyPI%20package&color=%234c1)](https://pypi.org/project/iterable-subprocess/) [![Test suite](https://img.shields.io/github/actions/workflow/status/uktrade/iterable-subprocess/test.yml?label=Test%20suite)](https://github.com/uktrade/iterable-subprocess/actions/workflows/test.yml) [![Code coverage](https://img.shields.io/codecov/c/github/uktrade/iterable-subprocess?label=Code%20coverage)](https://app.codecov.io/gh/uktrade/iterable-subprocess)
 
 Python utility function to communicate with a subprocess using iterables: for when data is too big to fit in memory and has to be streamed.
 
