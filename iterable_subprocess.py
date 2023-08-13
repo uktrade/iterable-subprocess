@@ -68,7 +68,7 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
             if not chunk:
                 break
             stderr_deque.append(chunk)
-            if len(stderr_deque[0]) - len(chunk) >= chunk_size:
+            if total_length - len(stderr_deque[0]) >= chunk_size:
                 stderr_deque.popleft()
 
     proc = None
@@ -91,4 +91,4 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
                     pass
     finally:
         if proc is not None and proc.returncode:
-            raise SubprocessError(b''.join(stderr_deque)[:chunk_size], proc.returncode)
+            raise SubprocessError(b''.join(stderr_deque)[-chunk_size:], proc.returncode)
