@@ -46,7 +46,6 @@ It's possible to download the bytes of a ZIP file in Python, and unzip by passin
 import httpx
 from iterable_subprocess import iterable_subprocess
 
-
 with \
         httpx.stream('GET', 'https://www.example.com/my.zip') as r, \
         iterable_subprocess(['funzip'], r.iter_bytes()) as unzipped_chunks:
