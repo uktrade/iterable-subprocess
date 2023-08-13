@@ -65,3 +65,17 @@ with \
 ```
 
 Note that it's also possible to stream unzip files without resorting to another process using [stream-unzip](https://github.com/uktrade/stream-unzip).
+
+
+## Example: download file using curl and process in Python
+
+You would usually download directly from Python, but as an example, you can download using the curl executable and process its output in Python.
+
+```python
+from iterable_subprocess import iterable_subprocess
+
+url = 'https://data.api.trade.gov.uk/v1/datasets/uk-tariff-2021-01-01/versions/v3.0.212/tables/measures-on-declarable-commodities/data?format=csv'
+with iterable_subprocess(['curl', url], ()) as output:
+    for chunk in output:
+        print(chunk)
+```
