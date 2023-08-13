@@ -35,6 +35,8 @@ with iterable_subprocess(['cat'], iterable_of_bytes) as output:
         print(chunk)
 ```
 
+If the process exits with a non-zero error code, a `SubprocessError` exception will be raised, with the contents of the processes's standard error as the message. At the time of writing if the process outputs a lot to its standard error, there may be deadlock.
+
 
 ## Usage: unzip the first file of a ZIP archive while downloading
 

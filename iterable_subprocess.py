@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from subprocess import Popen, PIPE
+from subprocess import PIPE, SubprocessError, Popen
 from threading import Thread
 
 
@@ -62,7 +62,7 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
     exiting = False
 
     with \
-        Popen(program, stdin=PIPE, stdout=PIPE) as proc, \
+        Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
         thread(input_to, proc.stdin, lambda: exiting):
 
         output = output_from(proc.stdout)
@@ -73,3 +73,12 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
             exiting = True
             for _ in output:  # Avoid a deadlock if the thread is still writing
                 pass
+
+        stderr = b''.join(iter(lambda: proc.stderr.read(), b''))
+
+    if proc.returncode:
+        raise IterableSubprocessError(stderr, proc.returncode)
+
+
+class IterableSubprocessError(SubprocessError):
+    pass
