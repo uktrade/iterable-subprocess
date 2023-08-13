@@ -1,3 +1,4 @@
+from collections import deque
 from contextlib import contextmanager
 from subprocess import PIPE, SubprocessError, Popen
 from threading import Thread
@@ -59,11 +60,24 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
                 break
             yield chunk
 
+    def keep_only_most_recent(stderr, stderr_deque):
+        total_length = 0
+        while True:
+            chunk = stderr.read(chunk_size)
+            total_length += len(chunk)
+            if not chunk:
+                break
+            stderr_deque.append(chunk)
+            if len(stderr_deque[0]) - len(chunk) >= chunk_size:
+                stderr_deque.popleft()
+
     exiting = False
+    stderr_deque = deque()
 
     with \
-        Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
-        thread(input_to, proc.stdin, lambda: exiting):
+            Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
+            thread(input_to, proc.stdin, lambda: exiting), \
+            thread(keep_only_most_recent, proc.stderr, stderr_deque):
 
         output = output_from(proc.stdout)
 
@@ -74,10 +88,8 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
             for _ in output:  # Avoid a deadlock if the thread is still writing
                 pass
 
-        stderr = proc.stderr.read()
-
     if proc.returncode:
-        raise IterableSubprocessError(stderr, proc.returncode)
+        raise IterableSubprocessError(b''.join(stderr_deque)[:chunk_size], proc.returncode)
 
 
 class IterableSubprocessError(SubprocessError):
