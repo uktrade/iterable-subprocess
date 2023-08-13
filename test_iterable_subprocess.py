@@ -7,7 +7,7 @@ import zipfile
 import psutil
 import pytest
 
-from iterable_subprocess import iterable_subprocess
+from iterable_subprocess import IterableSubprocessError, iterable_subprocess
 
 
 def test_cat_not_necessarily_streamed():
@@ -120,6 +120,12 @@ def test_exception_from_output_iterating_propagates_and_does_not_hang(at_iterati
 def test_exception_from_not_found_process_propagated():
     with pytest.raises(FileNotFoundError):
         with iterable_subprocess(['does-not-exist'], ()) as output:
+            b''.join(output)
+
+
+def test_exception_from_return_code():
+    with pytest.raises(IterableSubprocessError, match='No such file or directory'):
+        with iterable_subprocess(['ls', 'does-not-exist'], ()) as output:
             b''.join(output)
 
 
