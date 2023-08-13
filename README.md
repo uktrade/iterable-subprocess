@@ -38,7 +38,7 @@ with iterable_subprocess(['cat'], iterable_of_bytes) as output:
 
 ## Exceptions
 
-If the process exits with a non-zero error code, a `subprocess.SubprocessError` exception will be raised, with the contents of the processes's standard error as the message. Only the most recent 65536 bytes of the process's standard error are returned by default.
+If the process exits with a non-zero error code, a `subprocess.SubprocessError` exception will be raised, with the contents of the process's standard error as the message. Only the most recent 65536 bytes of the process's standard error are returned by default.
 
 Other exceptions can be output by the context, for example if code inside the context itself raises an exception then this exception is propagated through the context. However even in this case, if the return code of the process is non-zero, the corresponding `subprocess.SubprocessError` is the one that propagates out of the context.
 
