@@ -26,8 +26,8 @@ from iterable_subprocess import iterable_subprocess
 # In a real case could be a generator function that reads from the filesystem or the network
 iterable_of_bytes = (
     b'first\n',
-    b'second\n'
-    b'third\n'
+    b'second\n',
+    b'third\n',
 )
 
 with iterable_subprocess(['cat'], iterable_of_bytes) as output:
