@@ -1,6 +1,7 @@
 import functools
 import io
 import sys
+import subprocess
 import threading
 import unittest
 import zipfile
@@ -8,7 +9,7 @@ import zipfile
 import psutil
 import pytest
 
-from iterable_subprocess import IterableSubprocessError, iterable_subprocess
+from iterable_subprocess import iterable_subprocess
 
 
 def test_cat_not_necessarily_streamed():
@@ -125,16 +126,46 @@ def test_exception_from_not_found_process_propagated():
 
 
 def test_exception_from_return_code():
-    with pytest.raises(IterableSubprocessError, match='No such file or directory'):
+    with pytest.raises(subprocess.SubprocessError, match='No such file or directory'):
         with iterable_subprocess(['ls', 'does-not-exist'], ()) as output:
             b''.join(output)
 
 
 def test_exception_from_return_code_with_long_standard_error():
-    with pytest.raises(IterableSubprocessError, match="Error message" * 1000):
+    with pytest.raises(subprocess.SubprocessError, match="Error message" * 1000):
         with iterable_subprocess([sys.executable, '-c', 'import sys; print("Out"); print("Error message" * 100000, file=sys.stderr); sys.exit(1)'], ()) as output:
             for _ in output:
                 pass
+            raise Exception('Another exception')
+
+
+def test_exception_if_process_closes_its_standard_input_with_non_zero_error_code():
+    def yield_input():
+        while True:
+            yield b'*' * 10
+
+    with pytest.raises(subprocess.SubprocessError, match='The error'):
+        with iterable_subprocess([
+            sys.executable, '-c', 'import sys; sys.stdin.close(); import time; time.sleep(1); print("The error", file=sys.stderr); print("After output"); sys.exit(1)',
+        ], yield_input()) as output:
+            all_output = b''.join(output)
+            raise Exception('Another exception')
+
+    assert all_output == b'After output\n'
+
+
+def test_exception_if_process_closes_its_standard_input_with_zero_error_code():
+    def yield_input():
+        while True:
+            yield b'*' * 10
+
+    with pytest.raises(BrokenPipeError):
+        with iterable_subprocess([
+            sys.executable, '-c', 'import sys; sys.stdin.close(); import time; time.sleep(1); print("The error", file=sys.stderr); print("After output"); sys.exit(0)',
+        ], yield_input()) as output:
+            all_output = b''.join(output)
+
+    assert all_output == b'After output\n'
 
 
 def test_funzip_no_compression():
