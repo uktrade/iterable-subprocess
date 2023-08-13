@@ -4,14 +4,20 @@ import threading
 import unittest
 import zipfile
 
+import psutil
 import pytest
 
 from iterable_subprocess import iterable_subprocess
 
 
 def test_cat_not_necessarily_streamed():
-    output = b''.join(iterable_subprocess(['cat'], yield_small_input()))
-    assert output == b'firstsecondthird'
+    def yield_small_input():
+        yield b'first'
+        yield b'second'
+        yield b'third'
+
+    with iterable_subprocess(['cat'], yield_small_input()) as output:
+        assert b''.join(output) == b'firstsecondthird'
 
 
 def test_cat_streamed():
@@ -24,20 +30,27 @@ def test_cat_streamed():
             yield b'*' * 10
             latest_input = i
 
-    output_chunks = iter(iterable_subprocess(['cat'], yield_input()))
-    latest_input_during_output = [latest_input for _ in output_chunks]
+    with iterable_subprocess(['cat'], yield_input()) as output:
+        latest_input_during_output = [latest_input for _ in output]
 
-    # Make sure the input is progressing during the output. In test, there
-    # are about 915 steps, so checking that it's greater than 50 shouldm't
-    # make this test too flakey
-    num_steps = 0
-    prev_i = 0
-    for i in latest_input_during_output:
-        if i != prev_i:
-            num_steps += 1
-        prev_i = i
+        # Make sure the input is progressing during the output. In test, there
+        # are about 915 steps, so checking that it's greater than 50 shouldm't
+        # make this test too flakey
+        num_steps = 0
+        prev_i = 0
+        for i in latest_input_during_output:
+            if i != prev_i:
+                num_steps += 1
+            prev_i = i
 
-    assert num_steps > 50
+        assert num_steps > 50
+
+
+def test_process_closed_after():
+    assert len(psutil.Process().children(recursive=True)) == 0
+    with iterable_subprocess(['cat'], ()) as output:
+        assert len(psutil.Process().children(recursive=True)) == 1
+    assert len(psutil.Process().children(recursive=True)) == 0
 
 
 def test_exception_from_input_before_yield_propagated():
@@ -45,7 +58,8 @@ def test_exception_from_input_before_yield_propagated():
         raise Exception('Something went wrong')
 
     with pytest.raises(Exception, match='Something went wrong'):
-        b''.join(iterable_subprocess(['cat'], yield_input()))
+        with iterable_subprocess(['cat'], yield_input()) as output:
+            pass
 
 
 def test_exception_from_input_after_yield_propagated():
@@ -54,20 +68,46 @@ def test_exception_from_input_after_yield_propagated():
         raise Exception('Something went wrong')
 
     with pytest.raises(Exception, match='Something went wrong'):
-        b''.join(iterable_subprocess(['cat'], yield_input()))
+        with iterable_subprocess(['cat'], yield_input()) as output:
+            pass
 
 
 def test_exception_from_input_incorrect_type_propagated():
     def yield_input():
         yield 'this-should-be-bytes'
 
+
     with pytest.raises(TypeError):
-        b''.join(iterable_subprocess(['cat'], yield_input()))
+        with iterable_subprocess(['cat'], yield_input()) as output:
+            pass
+
+
+def test_exception_from_output_before_iterating_propagates_and_does_not_hang():
+    def yield_input():
+        for i in range(0, 100):
+            yield b'*' * 100000
+
+    with pytest.raises(Exception, match='My error'):
+        with iterable_subprocess(['cat'], yield_input()) as output:
+            raise Exception('My error')
+
+
+def test_exception_from_output_propagates_and_does_not_hang():
+    def yield_input():
+        for i in range(0, 100):
+            yield b'*' * 100000
+
+    with pytest.raises(Exception, match='My error'):
+        with iterable_subprocess(['cat'], yield_input()) as output:
+            for i, chunk in enumerate(output):
+                if i == 0:
+                    raise Exception('My error')
 
 
 def test_exception_from_not_found_process_propagated():
     with pytest.raises(FileNotFoundError):
-        b''.join(iterable_subprocess(['does-not-exist'], yield_small_input()))
+        with iterable_subprocess(['does-not-exist'], ()) as output:
+            b''.join(output)
 
 
 def test_funzip_no_compression():
@@ -80,8 +120,8 @@ def test_funzip_no_compression():
 
         yield file.getvalue()
 
-    output = b''.join(iterable_subprocess(['funzip'], yield_input()))
-    assert output == contents
+    with iterable_subprocess(['funzip'], yield_input()) as output:
+        assert b''.join(output) == contents
 
 
 def test_funzip_deflate():
@@ -94,11 +134,5 @@ def test_funzip_deflate():
 
         yield file.getvalue()
 
-    output = b''.join(iterable_subprocess(['funzip'], yield_input()))
-    assert output == contents
-
-
-def yield_small_input():
-    yield b'first'
-    yield b'second'
-    yield b'third'
+    with iterable_subprocess(['funzip'], yield_input()) as output:
+        assert b''.join(output) == contents

@@ -18,6 +18,7 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
+    "psutil",
     "pytest-cov",
 ]
 
