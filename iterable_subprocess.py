@@ -74,7 +74,7 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
             for _ in output:  # Avoid a deadlock if the thread is still writing
                 pass
 
-        stderr = b''.join(iter(lambda: proc.stderr.read(), b''))
+        stderr = proc.stderr.read()
 
     if proc.returncode:
         raise IterableSubprocessError(stderr, proc.returncode)
