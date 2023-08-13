@@ -82,25 +82,38 @@ def test_exception_from_input_incorrect_type_propagated():
             pass
 
 
-def test_exception_from_output_before_iterating_propagates_and_does_not_hang():
+@pytest.mark.parametrize("size", [
+    1, 100, 10000, 1000000,
+])
+def test_exception_from_output_during_input_iterating_propagates_and_does_not_hang(size):
+    event = threading.Event()
+
     def yield_input():
-        for i in range(0, 100):
-            yield b'*' * 100000
+        for i in range(0, 10000):
+            event.set()
+            yield b'*' * size
 
     with pytest.raises(Exception, match='My error'):
         with iterable_subprocess(['cat'], yield_input()) as output:
+            event.wait()
             raise Exception('My error')
 
 
-def test_exception_from_output_propagates_and_does_not_hang():
+@pytest.mark.parametrize("chunk_size", [
+    1, 100, 10000, 1000000,
+])
+@pytest.mark.parametrize("at_iteration", [
+    0, 1, 100,
+])
+def test_exception_from_output_iterating_propagates_and_does_not_hang(at_iteration, chunk_size):
     def yield_input():
-        for i in range(0, 100):
-            yield b'*' * 100000
+        for i in range(0, 10000):
+            yield b'*' * chunk_size
 
     with pytest.raises(Exception, match='My error'):
-        with iterable_subprocess(['cat'], yield_input()) as output:
+        with iterable_subprocess(['cat'], yield_input(), chunk_size=chunk_size) as output:
             for i, chunk in enumerate(output):
-                if i == 0:
+                if i == at_iteration:
                     raise Exception('My error')
 
 
