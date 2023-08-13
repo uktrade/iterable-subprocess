@@ -71,24 +71,28 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
             if total_length - len(stderr_deque[0]) >= chunk_size:
                 stderr_deque.popleft()
 
-    proc = None
     exiting = False
     stderr_deque = deque()
 
-    try:
-        with \
-                Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
-                thread(input_to, proc.stdin, lambda: exiting), \
-                thread(keep_only_most_recent, proc.stderr, stderr_deque):
+    with \
+            Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
+            thread(input_to, proc.stdin, lambda: exiting), \
+            thread(keep_only_most_recent, proc.stderr, stderr_deque):
 
-            output = output_from(proc.stdout)
+        output = output_from(proc.stdout)
 
-            try:
-                yield output
-            finally:
-                exiting = True
-                for _ in output:  # Avoid a deadlock if the thread is still writing
-                    pass
-    finally:
-        if proc is not None and proc.returncode:
-            raise SubprocessError(b''.join(stderr_deque)[-chunk_size:], proc.returncode)
+        try:
+            yield output
+        finally:
+            exiting = True
+            for _ in output:  # Avoid a deadlock if the thread is still writing
+                pass
+
+    if proc.returncode:
+        raise IterableSubprocessError(proc.returncode, b''.join(stderr_deque)[-chunk_size:])
+
+
+class IterableSubprocessError(SubprocessError):
+    def __init__(self, returncode, stderr):
+        self.returncode = returncode
+        self.stderr = stderr

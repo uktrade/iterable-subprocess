@@ -38,9 +38,14 @@ with iterable_subprocess(['cat'], iterable_of_bytes) as output:
 
 ## Exceptions
 
-If the process exits with a non-zero error code, a `subprocess.SubprocessError` exception will be raised, with the contents of the process's standard error as the message. Only the most recent 65536 bytes of the process's standard error are returned by default.
+Python's `subprocess.Popen` is used to start the process, and any exceptions it raises are propagated without transformation. For example, if the subprocess can't be found, then a `FileNotFoundError` is raised.
 
-Other exceptions can be output by the context, for example if code inside the context itself raises an exception then this exception is propagated through the context. However even in this case, if the return code of the process is non-zero, the corresponding `subprocess.SubprocessError` is the one that propagates out of the context.
+If the process starts, but exits with a non-zero return code, then an `iterable_subprocess.IterableSubprocessError` exception will be raised with two members:
+
+- `returncode` - the return code of the process
+- `stderr` - the final 65536 bytes of the standard error of the process
+
+However, if the process starts, but an exception is raised from inside the context, then this exception is propagated, even if the process subsequently exits with a non-zero return code.
 
 
 ## Example: unzip the first file of a ZIP archive while downloading

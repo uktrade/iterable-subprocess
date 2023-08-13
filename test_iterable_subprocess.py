@@ -9,7 +9,7 @@ import zipfile
 import psutil
 import pytest
 
-from iterable_subprocess import iterable_subprocess
+from iterable_subprocess import IterableSubprocessError, iterable_subprocess
 
 
 def test_cat_not_necessarily_streamed():
@@ -126,13 +126,16 @@ def test_exception_from_not_found_process_propagated():
 
 
 def test_exception_from_return_code():
-    with pytest.raises(subprocess.SubprocessError, match='No such file or directory'):
+    with pytest.raises(IterableSubprocessError, match='No such file or directory') as excinfo:
         with iterable_subprocess(['ls', 'does-not-exist'], ()) as output:
-            b''.join(output)
+            a = b''.join(output)
+
+    assert excinfo.value.returncode > 0
+    assert b'No such file or directory' in excinfo.value.stderr
 
 
 def test_exception_from_return_code_with_long_standard_error():
-    with pytest.raises(subprocess.SubprocessError, match="Error message" * 1000):
+    with pytest.raises(Exception, match="Another exception"):
         with iterable_subprocess([sys.executable, '-c', 'import sys; print("Out"); print("Error message" * 100000, file=sys.stderr); sys.exit(1)'], ()) as output:
             for _ in output:
                 pass
@@ -144,7 +147,7 @@ def test_exception_if_process_closes_its_standard_input_with_non_zero_error_code
         while True:
             yield b'*' * 10
 
-    with pytest.raises(subprocess.SubprocessError, match='The error'):
+    with pytest.raises(Exception, match='Another exception'):
         with iterable_subprocess([
             sys.executable, '-c', 'import sys; sys.stdin.close(); import time; time.sleep(1); print("The error", file=sys.stderr); print("After output"); sys.exit(1)',
         ], yield_input()) as output:
