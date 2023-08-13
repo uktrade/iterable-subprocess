@@ -5,38 +5,71 @@ from threading import Thread
 
 @contextmanager
 def iterable_subprocess(program, input_chunks, chunk_size=65536):
-    write_exception = None
-    t = None
+    # This context starts a thread that populates the subprocess's standard input.
+    # Otherwise we risk a deadlock - there is no output because the process is waiting
+    # for more input.
+    #
+    # This itself introduces its own complications and risks, but hopefully mitigated
+    # by having a well defined entry and exit mechanism that avoids sending data
+    # to the process if it's not running
+    #
+    # - The process is started
+    # - The thread is started
+    # - The thread iterates over the input, passing the input chunks to the process
+    # - The thread is instructed to stop iterating and close the process's standard input
+    # - Wait for the thread to exit
+    # - Wait for the process to exit
+    #
+    # By using context manager internally, this also gives quite strong guarentees that
+    # the above order is enforced to make sure the thread doesn't send data to the process
+    # whose standard input is closed and so we don't get BrokenPipe errors
 
-    try:
-        with Popen(program, stdin=PIPE, stdout=PIPE) as proc:
-            # Send to process from another thread...
-            def input_to_process():
-                nonlocal write_exception
+    @contextmanager
+    def thread(target, *args):
+        exception = None
+        def wrapper():
+            nonlocal exception
+            try:
+                target(*args)
+            except BaseException as e:
+                exception = e
 
-                try:
-                    for chunk in input_chunks:
-                        proc.stdin.write(chunk)
-                except BaseException as e:
-                    write_exception = e
-                finally:
-                    proc.stdin.close()
-
-            t = Thread(target=input_to_process)
-            t.start()
-
-            # ... but read from the process in this thread
-            def output_from_process():
-                while True:
-                    chunk = proc.stdout.read(chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
-
-            yield output_from_process()
-    finally:
-        if t is not None and t.ident:
+        t = Thread(target=wrapper)
+        t.start()
+        try:
+            yield
+        finally:
             t.join()
 
-    if write_exception is not None:
-        raise write_exception
+        if exception is not None:
+            raise exception
+
+    def input_to(stdin, get_exiting):
+        try:
+            for chunk in input_chunks:
+                if not get_exiting():
+                    stdin.write(chunk)
+        finally:
+            stdin.close()
+
+    def output_from(stdout):
+        while True:
+            chunk = stdout.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+
+    exiting = False
+
+    with \
+        Popen(program, stdin=PIPE, stdout=PIPE) as proc, \
+        thread(input_to, proc.stdin, lambda: exiting):
+
+        output = output_from(proc.stdout)
+
+        try:
+            yield output
+        finally:
+            exiting = True
+            for _ in output:  # Avoid a deadlock if the thread is still writing
+                pass
