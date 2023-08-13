@@ -1,5 +1,6 @@
 import functools
 import io
+import sys
 import threading
 import unittest
 import zipfile
@@ -127,6 +128,13 @@ def test_exception_from_return_code():
     with pytest.raises(IterableSubprocessError, match='No such file or directory'):
         with iterable_subprocess(['ls', 'does-not-exist'], ()) as output:
             b''.join(output)
+
+
+def test_exception_from_return_code_with_long_standard_error():
+    with pytest.raises(IterableSubprocessError, match="Error message" * 1000):
+        with iterable_subprocess([sys.executable, '-c', 'import sys; print("Out"); print("Error message" * 100000, file=sys.stderr); sys.exit(1)'], ()) as output:
+            for _ in output:
+                pass
 
 
 def test_funzip_no_compression():
