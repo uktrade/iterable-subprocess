@@ -7,7 +7,7 @@ import zipfile
 import psutil
 import pytest
 
-from iterable_subprocess import iterable_subprocess
+from iterable_subprocess import iterable_subprocess, Thread
 
 
 def test_cat_not_necessarily_streamed():
@@ -108,6 +108,26 @@ def test_exception_from_not_found_process_propagated():
     with pytest.raises(FileNotFoundError):
         with iterable_subprocess(['does-not-exist'], ()) as output:
             b''.join(output)
+
+
+def test_exception_starting_thread_propagates(monkeypatch):
+    def raise_exception(_):
+        raise Exception('start failed')
+    monkeypatch.setattr(Thread, 'start', raise_exception)
+
+    with pytest.raises(Exception, match='start failed'):
+        with iterable_subprocess(['cat'], ()) as output:
+            pass
+
+
+def test_base_exception_starting_thread_propagates(monkeypatch):
+    def raise_exception(_):
+        raise BaseException('start failed')
+    monkeypatch.setattr(Thread, 'start', raise_exception)
+
+    with pytest.raises(BaseException, match='start failed'):
+        with iterable_subprocess(['cat'], ()) as output:
+            pass
 
 
 def test_funzip_no_compression():
