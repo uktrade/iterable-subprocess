@@ -33,5 +33,5 @@ jobs:
           pip install .[dev]
       - name: "Test"
         run: |
-          coverage run -m unittest
+          pytest --cov
       - uses: codecov/codecov-action@v3
