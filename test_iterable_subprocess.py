@@ -2,6 +2,7 @@ import io
 import sys
 import subprocess
 import threading
+import time
 import unittest
 import zipfile
 
@@ -178,6 +179,20 @@ def test_exception_if_process_closes_its_standard_input_with_zero_error_code():
             all_output = b''.join(output)
 
     assert all_output == b'After output\n'
+
+
+def test_program_that_outputs_for_a_long_time_is_interrupted_on_context_exit():
+    start = time.monotonic()
+
+    with pytest.raises(IterableSubprocessError) as excinfo:
+        with iterable_subprocess([sys.executable, '-c', 'import time; start = time.monotonic()\nwhile (time.monotonic() - start) < 60:\n    print("Output" * 1000)'], ()) as output:
+            pass
+
+    end = time.monotonic()
+
+    assert excinfo.value.returncode != 0
+    assert b'BrokenPipeError' in excinfo.value.stderr
+    assert end - start < 10
 
 
 def test_funzip_no_compression():
