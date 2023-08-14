@@ -3,6 +3,7 @@ import io
 import sys
 import subprocess
 import threading
+import time
 import unittest
 import zipfile
 
@@ -159,7 +160,7 @@ def test_exception_if_process_closes_its_standard_input_with_non_zero_error_code
 
     with pytest.raises(Exception, match='Another exception'):
         with iterable_subprocess([
-            sys.executable, '-c', 'import sys; sys.stdin.close(); import time; time.sleep(1); print("The error", file=sys.stderr); print("After output"); sys.exit(1)',
+            sys.executable, '-c', 'import sys; sys.stdin.close(); print("The error", file=sys.stderr); print("After output"); sys.exit(1)',
         ], yield_input()) as output:
             all_output = b''.join(output)
             raise Exception('Another exception')
@@ -174,7 +175,7 @@ def test_exception_if_process_closes_its_standard_input_with_zero_error_code():
 
     with pytest.raises(BrokenPipeError):
         with iterable_subprocess([
-            sys.executable, '-c', 'import sys; sys.stdin.close(); import time; time.sleep(1); print("The error", file=sys.stderr); print("After output"); sys.exit(0)',
+            sys.executable, '-c', 'import sys; sys.stdin.close(); print("The error", file=sys.stderr); print("After output"); sys.exit(0)',
         ], yield_input()) as output:
             all_output = b''.join(output)
 
