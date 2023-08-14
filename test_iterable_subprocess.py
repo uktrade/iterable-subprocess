@@ -1,9 +1,7 @@
-import functools
 import io
 import sys
 import subprocess
 import threading
-import time
 import unittest
 import zipfile
 
