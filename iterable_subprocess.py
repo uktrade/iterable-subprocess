@@ -76,8 +76,8 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
 
     with \
             Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
-            thread(input_to, proc.stdin, lambda: exiting), \
-            thread(keep_only_most_recent, proc.stderr, stderr_deque):
+            thread(keep_only_most_recent, proc.stderr, stderr_deque), \
+            thread(input_to, proc.stdin, lambda: exiting):
 
         output = output_from(proc.stdout)
 
