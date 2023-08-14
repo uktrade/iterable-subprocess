@@ -182,6 +182,19 @@ def test_exception_if_process_closes_its_standard_input_with_zero_error_code():
     assert all_output == b'After output\n'
 
 
+def test_program_that_just_waits():
+    start = time.monotonic()
+
+    with pytest.raises(IterableSubprocessError) as excinfo:
+        with iterable_subprocess([sys.executable, '-c', 'import time; time.sleep(60);)'], ()) as output:
+            pass
+
+    end = time.monotonic()
+
+    assert excinfo.value.returncode != 0
+    assert end - start < 10
+
+
 def test_funzip_no_compression():
     contents = b'*' * 100000
 
