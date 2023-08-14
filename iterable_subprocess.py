@@ -81,6 +81,7 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
                 break
             stderr_deque.append(chunk)
             if total_length - len(stderr_deque[0]) >= chunk_size:
+                total_length -= len(stderr_deque[0])
                 stderr_deque.popleft()
 
     exiting = False

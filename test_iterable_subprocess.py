@@ -134,12 +134,22 @@ def test_exception_from_return_code():
     assert b'No such file or directory' in excinfo.value.stderr
 
 
-def test_exception_from_return_code_with_long_standard_error():
+def test_exception_from_context_even_though_return_code_with_long_standard_error():
     with pytest.raises(Exception, match="Another exception"):
         with iterable_subprocess([sys.executable, '-c', 'import sys; print("Out"); print("Error message" * 100000, file=sys.stderr); sys.exit(1)'], ()) as output:
             for _ in output:
                 pass
             raise Exception('Another exception')
+
+
+def test_exception_from_return_code_with_long_standard_error():
+    with pytest.raises(IterableSubprocessError) as excinfo:
+        with iterable_subprocess([sys.executable, '-c', 'import sys; print("Out"); print("Error message" * 100000, file=sys.stderr); sys.exit(2)'], ()) as output:
+            for _ in output:
+                pass
+
+    assert excinfo.value.returncode == 2
+    assert len(excinfo.value.stderr) == 65536
 
 
 def test_exception_if_process_closes_its_standard_input_with_non_zero_error_code():
