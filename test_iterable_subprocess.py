@@ -152,14 +152,14 @@ def test_exception_from_return_code_with_long_standard_error():
     assert len(excinfo.value.stderr) == 65536
 
 
-def test_exception_if_process_closes_its_standard_input_with_non_zero_error_code():
+def test_if_process_exits_with_non_zero_error_code_and_inner_exception_it_propagates():
     def yield_input():
         while True:
             yield b'*' * 10
 
     with pytest.raises(Exception, match='Another exception'):
         with iterable_subprocess([
-            sys.executable, '-c', 'import sys; sys.stdin.close(); print("The error", file=sys.stderr); print("After output"); sys.exit(1)',
+            sys.executable, '-c', 'import sys; print("The error", file=sys.stderr); print("After output"); sys.exit(1)',
         ], yield_input()) as output:
             all_output = b''.join(output)
             raise Exception('Another exception')
@@ -167,7 +167,7 @@ def test_exception_if_process_closes_its_standard_input_with_non_zero_error_code
     assert all_output == b'After output\n'
 
 
-def test_exception_if_process_closes_its_standard_input_with_zero_error_code():
+def test_if_process_closes_standard_input_but_exits_with_non_zero_error_code_then_broken_pipe_error():
     def yield_input():
         while True:
             yield b'*' * 10
@@ -179,6 +179,22 @@ def test_exception_if_process_closes_its_standard_input_with_zero_error_code():
             all_output = b''.join(output)
 
     assert all_output == b'After output\n'
+
+
+def test_if_process_closes_standard_input_but_exits_with_non_zero_error_code_then_iterable_subprocess_error():
+    def yield_input():
+        while True:
+            yield b'*' * 10
+
+    with pytest.raises(IterableSubprocessError) as excinfo:
+        with iterable_subprocess([
+            sys.executable, '-c', 'import sys; sys.stdin.close(); print("The error", file=sys.stderr); print("After output"); sys.exit(3)',
+        ], yield_input()) as output:
+            all_output = b''.join(output)
+
+    assert all_output == b'After output\n'
+    assert excinfo.value.returncode == 3
+    assert excinfo.value.stderr == b'The error\n'
 
 
 def test_program_that_outputs_for_a_long_time_is_interrupted_on_context_exit():

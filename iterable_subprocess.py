@@ -35,6 +35,17 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
     # the above order is enforced to make sure the thread doesn't send data to the process
     # whose standard input is closed and so we don't get BrokenPipe errors
 
+    # Writing to the process can result in a BrokenPipeError. If this then results in
+    # a non-zero code from the process, the process's standard error probably has useful
+    # information on the cause of this. However, the non-zero error code happens after
+    # BrokenPipeError, so propagating "what happens first" isn't helpful in this case.
+    # So, we re-raise BrokenPipeError as _BrokenPipeError so we can catch it after the
+    # process ends to then allow us to branch on its error code:
+    # - if it's non-zero raise an IterableSubprocessError containing its standard error
+    # - if it's zero, re-raise the original BrokenPipeError
+    class _BrokenPipeError(Exception):
+        pass
+
     @contextmanager
     def thread(target, *args):
         exception = None
@@ -58,9 +69,15 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
     def input_to(stdin):
         try:
             for chunk in input_chunks:
-                stdin.write(chunk)
+                try:
+                    stdin.write(chunk)
+                except BrokenPipeError:
+                    raise _BrokenPipeError()
         finally:
-            stdin.close()
+            try:
+                stdin.close()
+            except BrokenPipeError:
+                raise _BrokenPipeError()
 
     def output_from(stdout):
         while True:
@@ -81,19 +98,26 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
                 total_length -= len(stderr_deque[0])
                 stderr_deque.popleft()
 
+    proc = None
     stderr_deque = deque()
 
-    with \
-            Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
-            thread(keep_only_most_recent, proc.stderr, stderr_deque), \
-            thread(input_to, proc.stdin):
+    try:
 
-        output = output_from(proc.stdout)
+        with \
+                Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
+                thread(keep_only_most_recent, proc.stderr, stderr_deque), \
+                thread(input_to, proc.stdin):
 
-        try:
-            yield output
-        finally:
-            proc.stdout.close()
+            output = output_from(proc.stdout)
+
+            try:
+                yield output
+            finally:
+                proc.stdout.close()
+
+    except _BrokenPipeError as e:
+        if proc.returncode == 0:
+            raise e.__context__ from None
 
     if proc.returncode:
         raise IterableSubprocessError(proc.returncode, b''.join(stderr_deque)[-chunk_size:])
