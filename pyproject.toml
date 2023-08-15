@@ -8,7 +8,7 @@ version = "0.0.0.dev0"
 authors = [
   { name="Department for International Trade", email="sre@digital.trade.gov.uk" },
 ]
-description = "Communicate with a subprocess using iterables: for when data is too big to fit in memory and has to be streamed"
+description = "Python context manager to communicate with a subprocess using iterables of bytes rather Python's built-in subprocess module"
 readme = "README.md"
 requires-python = ">=3.6.7"
 classifiers = [
