@@ -45,7 +45,7 @@ If the process starts, but exits with a non-zero return code, then an `iterable_
 - `returncode` - the return code of the process
 - `stderr` - the final 65536 bytes of the standard error of the process
 
-However, if the process starts, but an exception is raised from inside the context, then this exception is propagated, even if the process subsequently exits with a non-zero return code.
+However, if the process starts, but an exception is raised from inside the context or from the source iterable, then this exception is propagated, even if the process subsequently exits with a non-zero return code.
 
 
 ## Example: unzip the first file of a ZIP archive while downloading
