@@ -167,6 +167,7 @@ def test_if_process_exits_with_non_zero_error_code_and_inner_exception_it_propag
     assert all_output == b'After output\n'
 
 
+
 def test_if_process_closes_standard_input_but_exits_with_non_zero_error_code_then_broken_pipe_error():
     def yield_input():
         while True:
@@ -209,6 +210,41 @@ def test_program_that_outputs_for_a_long_time_is_interrupted_on_context_exit():
     assert excinfo.value.returncode != 0
     assert b'BrokenPipeError' in excinfo.value.stderr
     assert end - start < 10
+
+
+def test_program_that_sleeps_exits_quickly_if_exception():
+    start = time.monotonic()
+
+    with pytest.raises(Exception, match='From context'):
+        with iterable_subprocess([sys.executable, '-c', 'import time; time.sleep(60)'], ()) as output:
+            raise Exception('From context')
+
+    end = time.monotonic()
+
+    assert end - start < 10
+
+
+def test_program_that_sleeps_exits_quickly_if_keyboard_interrupt():
+    start = time.monotonic()
+
+    with pytest.raises(KeyboardInterrupt, match='From context'):
+        with iterable_subprocess([sys.executable, '-c', 'import time; time.sleep(60)'], ()) as output:
+            raise KeyboardInterrupt('From context')
+
+    end = time.monotonic()
+
+    assert end - start < 10
+
+
+def test_program_that_sleeps_not_quickly_if_no_exception():
+    start = time.monotonic()
+
+    with iterable_subprocess([sys.executable, '-c', 'import time; time.sleep(2)'], ()) as output:
+        pass
+
+    end = time.monotonic()
+
+    assert end - start > 2
 
 
 def test_funzip_no_compression():
