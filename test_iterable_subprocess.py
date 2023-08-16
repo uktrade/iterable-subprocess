@@ -8,6 +8,7 @@ import zipfile
 
 import psutil
 import pytest
+from threading import Thread
 
 from iterable_subprocess import IterableSubprocessError, iterable_subprocess
 
@@ -230,6 +231,38 @@ def test_program_that_sleeps_exits_quickly_if_keyboard_interrupt():
     with pytest.raises(KeyboardInterrupt, match='From context'):
         with iterable_subprocess([sys.executable, '-c', 'import time; time.sleep(60)'], ()) as output:
             raise KeyboardInterrupt('From context')
+
+    end = time.monotonic()
+
+    assert end - start < 10
+
+
+def test_program_that_sleeps_exits_quickly_if_keyboard_interrupt_just_before_thread_starts(monkeypatch):
+    start = time.monotonic()
+
+    def start_that_raises_keyboard_interrupt(self):
+        raise KeyboardInterrupt('Just before starting thread')
+    monkeypatch.setattr(Thread, 'start', start_that_raises_keyboard_interrupt)
+
+    with pytest.raises(KeyboardInterrupt, match='Just before starting thread'):
+        iterable_subprocess([sys.executable, '-c', 'import time; time.sleep(60)'], ()).__enter__()
+
+    end = time.monotonic()
+
+    assert end - start < 10
+
+
+def test_program_that_sleeps_exits_quickly_if_keyboard_interrupt_just_after_thread_starts(monkeypatch):
+    start = time.monotonic()
+
+    original_start = Thread.start
+    def start_that_raises_keyboard_interrupt(self):
+        original_start(self)
+        raise KeyboardInterrupt('Just after starting thread')
+    monkeypatch.setattr(Thread, 'start', start_that_raises_keyboard_interrupt)
+
+    with pytest.raises(KeyboardInterrupt, match='Just after starting thread'):
+        iterable_subprocess([sys.executable, '-c', 'import time; time.sleep(60)'], ()).__enter__()
 
     end = time.monotonic()
 
