@@ -92,7 +92,7 @@ def test_exception_from_output_during_input_iterating_propagates_and_does_not_ha
     event = threading.Event()
 
     def yield_input():
-        for i in range(0, 10000):
+        while True:
             event.set()
             yield b'*' * size
 
@@ -110,7 +110,7 @@ def test_exception_from_output_during_input_iterating_propagates_and_does_not_ha
 ])
 def test_exception_from_output_iterating_propagates_and_does_not_hang(at_iteration, chunk_size):
     def yield_input():
-        for i in range(0, 10000):
+        while True:
             yield b'*' * chunk_size
 
     with pytest.raises(Exception, match='My error'):
