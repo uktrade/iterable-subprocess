@@ -57,14 +57,16 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
                 exception = e
 
         t = Thread(target=wrapper)
-        t.start()
-        try:
-            yield
-        finally:
-            t.join()
 
-        if exception is not None:
-            raise exception
+        def start():
+            t.start()
+
+        def join():
+            if t.ident:
+                t.join()
+            return exception
+
+        yield start, join
 
     def input_to(stdin):
         try:
@@ -98,22 +100,36 @@ def iterable_subprocess(program, input_chunks, chunk_size=65536):
                 total_length -= len(stderr_deque[0])
                 stderr_deque.popleft()
 
+    def raise_if_not_none(exception):
+        if exception is not None:
+            raise exception from None
+
     proc = None
     stderr_deque = deque()
+    exception_stdin = None
+    exception_stderr = None
 
     try:
 
         with \
                 Popen(program, stdin=PIPE, stdout=PIPE, stderr=PIPE) as proc, \
-                thread(keep_only_most_recent, proc.stderr, stderr_deque), \
-                thread(input_to, proc.stdin):
-
-            output = output_from(proc.stdout)
+                thread(keep_only_most_recent, proc.stderr, stderr_deque) as (start_t_stderr, join_t_stderr), \
+                thread(input_to, proc.stdin) as (start_t_stdin, join_t_stdin):
 
             try:
-                yield output
+                start_t_stderr()
+                start_t_stdin()
+                yield output_from(proc.stdout)
+            except BaseException:
+                proc.terminate()
+                raise
             finally:
                 proc.stdout.close()
+                exception_stdin = join_t_stdin()
+                exception_stderr = join_t_stderr()
+
+            raise_if_not_none(exception_stdin)
+            raise_if_not_none(exception_stderr)
 
     except _BrokenPipeError as e:
         if proc.returncode == 0:
